@@ -3,16 +3,17 @@ use std::io::{self, BufRead};
 use rand;
 use rand::seq::IteratorRandom;
 struct Key{
-    modulus: u32,
-    exponent: u32,
+    modulus: u64,
+    exponent: u64,
 }
 
 struct Encryptor{
-    modulus: u32,
-    totient: u32,
+    modulus: u64,
+    totient: u64,
     public_key: Key,
     private_key: Key,
 }
+
 impl Encryptor{
     pub fn new() -> Self{
         
@@ -50,8 +51,9 @@ impl Encryptor{
         let numbers = lines.iter().choose_multiple(&mut rng, 2);
         
         // changes the primes into numbers to be manipulated
-        let primes: Vec<u32> = numbers.iter().filter_map(|x| x.parse::<u32>().ok()).collect();
+        let primes: Vec<u64> = numbers.iter().filter_map(|x| x.parse::<u64>().ok()).collect();
 
+        // sets the totient and modulus attribute
         self.modulus = primes[0] * primes[1];
         self.totient = (primes[0] - 1) * (primes[1] - 1);
 
@@ -60,26 +62,36 @@ impl Encryptor{
         // generates the public key
          self.public_key = Key{modulus: self.modulus, exponent: 2477};
     }
+
+    pub fn safe_modular(&mut self, argument: u64, base: u64) -> Option<u64>{
+        let mut remainder = argument;
+        while remainder > base {
+            remainder -= base;
+        }
+        Some(remainder)
+    }
+
     fn generate_priv_key(&mut self){
         // generates the private key
 
-        let mut d = self.public_key.exponent;
-        while (d * self.public_key.exponent) % self.totient != 1 {
-            d -= 1;
+        let mut d: u64 = 0;
+        while self.safe_modular(d*self.public_key.exponent, self.totient).unwrap_or(1) != 1 {
+            d += 1;
         }
 
         self.private_key = Key{modulus: self.modulus, exponent: d};
     }
-    pub fn encode(message: u32, pub_key: Key) -> u32{
+    /*
+    pub fn encode(message: u64, pub_key: Key) -> u64{
         return message.pow(pub_key.exponent) % pub_key.modulus
     }
-    pub fn decode(self, message: u32) -> u32{
+    pub fn decode(self, message: u64) -> u64{
         return message.pow(self.private_key.exponent) % self.private_key.modulus
     }
+    */
 }
 
 fn main(){
-    println!("hello!");
     let encr = Encryptor::new();
     println!("modulus: {:?}, totient: {:?}", encr.modulus, encr.totient);
 }
