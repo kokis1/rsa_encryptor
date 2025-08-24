@@ -1,3 +1,7 @@
+use std::fs::File;
+use std::io::{self, BufRead};
+use rand;
+use rand::seq::IteratorRandom;
 struct Key{
     modulus: u32,
     exponent: u32,
@@ -10,36 +14,61 @@ struct Encryptor{
     private_key: Key,
 }
 impl Encryptor{
-    pub fn new() -> Encryptor{
-        /*Encryptor { 
-            modulus: Self::generateModulus(),
-            totient: Self::generateTotient(),
-            public_key: Self::generatePubKey(),
-            private_key: Self::generatePrivKey() }
-            */
-        Self::generateModulusTotient()
+    pub fn new() -> Self{
+        
+        // creates an initial mutable state
+        let mut encrypt = Self{ modulus: 0,
+            totient: 0, 
+            public_key: Key { modulus: 0, exponent: 0 }, 
+            private_key: Key { modulus: 0, exponent: 0 }};
+        
+        // calls the actual constructor methods
+        encrypt.generate_modulus_totient();
+        encrypt.generate_pub_key();
+        encrypt.generate_priv_key();
+        
+        // returns the fully constructed encryptor
+        encrypt
+         
     }
-    fn generateModulus(){
+    pub fn generate_modulus_totient(&mut self){
+        
         // opens the prime number file
+        let path = "../prime_list.csv";
+        
 
-        // generates two random numbers
+        // opens the file
+        let file  = File::open(path).expect("unable to open file");
+        
+        // creates an iterator over the lines of the file
+        let reader = io::BufReader::new(file);
+        let lines: Vec<String> = reader.lines().map(|x| x.unwrap()).collect();
+        
+        // chooses two lines from the file randomly
 
-        // reads the line associated with the numbers
+        let mut rng = rand::rng();
+        let numbers = lines.iter().choose_multiple(&mut rng, 2);
+        
+        // changes the primes into numbers to be manipulated
+        let primes: Vec<u32> = numbers.iter().filter_map(|x| x.parse::<u32>().ok()).collect();
 
-        // sets self's modulus
-        // sets self's totient
+        self.modulus = primes[0] * primes[1];
+        self.totient = (primes[0] - 1) * (primes[1] - 1);
+
     }
-    fn generateTotient() -> u32{
-        // generates the totient
-        return 3
-    }
-    fn generatePubKey() -> Key{
+    fn generate_pub_key(&mut self){
         // generates the public key
-        return Key{modulus: 3, exponent: 3}
+         self.public_key = Key{modulus: self.modulus, exponent: 2477};
     }
-    fn generatePrivKey() -> Key{
+    fn generate_priv_key(&mut self){
         // generates the private key
-        return Key{modulus: 3, exponent: 3}
+
+        let mut d = self.public_key.exponent;
+        while (d * self.public_key.exponent) % self.totient != 1 {
+            d -= 1;
+        }
+
+        self.private_key = Key{modulus: self.modulus, exponent: d};
     }
     pub fn encode(message: u32, pub_key: Key) -> u32{
         return message.pow(pub_key.exponent) % pub_key.modulus
@@ -50,5 +79,7 @@ impl Encryptor{
 }
 
 fn main(){
-    println!("hello world");
+    println!("hello!");
+    let encr = Encryptor::new();
+    println!("modulus: {:?}, totient: {:?}", encr.modulus, encr.totient);
 }
