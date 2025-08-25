@@ -3,13 +3,13 @@ use std::io::{self, BufRead};
 use rand;
 use rand::seq::IteratorRandom;
 struct Key{
-    modulus: u64,
-    exponent: u64,
+    modulus: i64,
+    exponent: i64,
 }
 
 struct Encryptor{
-    modulus: u64,
-    totient: u64,
+    modulus: i64,
+    totient: i64,
     public_key: Key,
     private_key: Key,
 }
@@ -51,7 +51,7 @@ impl Encryptor{
         let numbers = lines.iter().choose_multiple(&mut rng, 2);
         
         // changes the primes into numbers to be manipulated
-        let primes: Vec<u64> = numbers.iter().filter_map(|x| x.parse::<u64>().ok()).collect();
+        let primes: Vec<i64> = numbers.iter().filter_map(|x| x.parse::<i64>().ok()).collect();
 
         // sets the totient and modulus attribute
         self.modulus = primes[0] * primes[1];
@@ -63,7 +63,7 @@ impl Encryptor{
          self.public_key = Key{modulus: self.modulus, exponent: 2477};
     }
 
-    pub fn safe_modular(&mut self, argument: u64, base: u64) -> Option<u64>{
+    fn safe_modular(&mut self, argument: i64, base: i64) -> Option<i64>{
         let mut remainder = argument;
         while remainder > base {
             remainder -= base;
@@ -71,27 +71,83 @@ impl Encryptor{
         Some(remainder)
     }
 
+    fn extended_euclidean(&mut self, exponent: i64, base: i64) -> Option<i64>{
+        let mut t: i64 = 0;
+        let mut r: i64 = base as i64;
+        let mut newt: i64 = 1;
+        let mut newr: i64 = exponent as i64;
+
+        while newr != 0 {
+            let quotient = r / newr;
+            
+            // updates the value of t and newt
+            let mut dummy_1 = t;
+            let mut dummy_new = newt;
+            t = dummy_new;
+            newt = dummy_1 - quotient * dummy_new;
+
+            dummy_1 = r;
+            dummy_new = newr;
+            r = dummy_new;
+            newr = dummy_1 - quotient * dummy_new;
+
+        }
+
+        if r > 1 {
+            return Option::None
+        }
+        if t < 0{
+            t += base as i64;
+        }
+        return Some(t as i64)
+    }
+
     fn generate_priv_key(&mut self){
         // generates the private key
 
-        let mut d: u64 = 0;
-        while self.safe_modular(d*self.public_key.exponent, self.totient).unwrap_or(1) != 1 {
-            d += 1;
-        }
+        let d = self.extended_euclidean(self.public_key.exponent, self.modulus).unwrap();
 
         self.private_key = Key{modulus: self.modulus, exponent: d};
     }
-    /*
-    pub fn encode(message: u64, pub_key: Key) -> u64{
-        return message.pow(pub_key.exponent) % pub_key.modulus
+
+    fn fast_modulus(self, number: i64, base: i64) -> i64{
+        let mut remainder = number;
+        while remainder > 0{
+            remainder -= base;
+        }
+        return remainder as i64
     }
-    pub fn decode(self, message: u64) -> u64{
-        return message.pow(self.private_key.exponent) % self.private_key.modulus
+
+    pub fn exponentiate(message: i64, exponent: i64) -> i64{
+        let mut counter = exponent;
+        let mut answer = message;
+        while counter > 0 {
+            answer *= answer;
+            counter -= 1;
+        }
+        return answer
     }
-    */
+
+    pub fn encode(self, message: i64, pub_key: &Key) -> i64{
+        let number = Encryptor::exponentiate(message, pub_key.exponent);
+        return self.fast_modulus(number, pub_key.modulus)
+    }
+    pub fn decode(self, message: i64) -> i64{
+        let number = Encryptor::exponentiate(message, self.private_key.exponent);
+
+        // copied to prevent ownership error
+        let modulus = self.private_key.modulus;
+        return self.fast_modulus(number, modulus)
+    }
 }
 
+
 fn main(){
-    let encr = Encryptor::new();
-    println!("modulus: {:?}, totient: {:?}", encr.modulus, encr.totient);
+    let alice = Encryptor::new();
+    let bob = Encryptor::new();
+    
+    let message = 123;
+    let encrypted_message = alice.encode(message, &bob.public_key);
+    let decrypted_message = bob.decode(encrypted_message);
+    println!("message: {}, encrypted message: {}, decrypted message: {}", message, encrypted_message, decrypted_message);
 }
