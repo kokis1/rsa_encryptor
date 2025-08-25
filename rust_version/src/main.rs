@@ -63,14 +63,6 @@ impl Encryptor{
          self.public_key = Key{modulus: self.modulus, exponent: 2477};
     }
 
-    fn safe_modular(&mut self, argument: i64, base: i64) -> Option<i64>{
-        let mut remainder = argument;
-        while remainder > base {
-            remainder -= base;
-        }
-        Some(remainder)
-    }
-
     fn extended_euclidean(&mut self, exponent: i64, base: i64) -> Option<i64>{
         let mut t: i64 = 0;
         let mut r: i64 = base as i64;
@@ -110,34 +102,28 @@ impl Encryptor{
         self.private_key = Key{modulus: self.modulus, exponent: d};
     }
 
-    fn fast_modulus(self, number: i64, base: i64) -> i64{
-        let mut remainder = number;
-        while remainder > 0{
-            remainder -= base;
+    pub fn modular_exponentiation(mut base: i64, mut exp: i64, modulus: i64) -> i64 {
+    let mut result: i64 = 1;
+    base = ((base % modulus) + modulus) % modulus; // ensure non-negative
+
+    while exp > 0 {
+        if exp & 1 == 1 {
+            result = (result as i128 * base as i128 % modulus as i128) as i64;
         }
-        return remainder as i64
+        exp >>= 1;
+        base = (base as i128 * base as i128 % modulus as i128) as i64;
     }
 
-    pub fn exponentiate(message: i64, exponent: i64) -> i64{
-        let mut counter = exponent;
-        let mut answer = message;
-        while counter > 0 {
-            answer *= answer;
-            counter -= 1;
-        }
-        return answer
-    }
+    result
+}
 
     pub fn encode(self, message: i64, pub_key: &Key) -> i64{
-        let number = Encryptor::exponentiate(message, pub_key.exponent);
-        return self.fast_modulus(number, pub_key.modulus)
+        // message**pub_exp % pub_modulus
+        return Encryptor::modular_exponentiation(message, pub_key.exponent, pub_key.modulus)
     }
     pub fn decode(self, message: i64) -> i64{
-        let number = Encryptor::exponentiate(message, self.private_key.exponent);
-
-        // copied to prevent ownership error
-        let modulus = self.private_key.modulus;
-        return self.fast_modulus(number, modulus)
+        // message**priv_exp % pub_modulus
+        return Encryptor::modular_exponentiation(message, self.private_key.exponent, self.private_key.modulus)
     }
 }
 
@@ -145,7 +131,7 @@ impl Encryptor{
 fn main(){
     let alice = Encryptor::new();
     let bob = Encryptor::new();
-    
+
     let message = 123;
     let encrypted_message = alice.encode(message, &bob.public_key);
     let decrypted_message = bob.decode(encrypted_message);
