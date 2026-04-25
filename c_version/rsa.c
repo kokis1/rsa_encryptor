@@ -29,6 +29,4 @@ key *gen_priv_key(){
       printf("Failed to read from /dev/urandom");
       return 1;
    }
-   
-
 }
