@@ -11,7 +11,7 @@ int check_inputs(int argc){
 }
 
 int is_prime(unsigned int n){
-   int max_check = sqrt(n);
+   double max_check = sqrt(n);
    for(int i = 2; i <= max_check; i++){
       if(n % i == 0)
             return 0;
