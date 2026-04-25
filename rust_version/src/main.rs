@@ -1,7 +1,9 @@
 use std::fs::File;
 use std::io::{self, BufRead};
+use num_traits::{FromPrimitive, ToPrimitive};
 use rand;
 use rand::seq::IteratorRandom;
+use num_bigint::{BigUint};
 struct Key{
     modulus: i64,
     exponent: i64,
@@ -86,7 +88,7 @@ impl Encryptor{
         }
 
         if r > 1 {
-            return Option::None
+            return None
         }
         if t < 0{
             t += base as i64;
@@ -102,28 +104,36 @@ impl Encryptor{
         self.private_key = Key{modulus: self.modulus, exponent: d};
     }
 
-    pub fn modular_exponentiation(mut base: i64, mut exp: i64, modulus: i64) -> i64 {
-    let mut result: i64 = 1;
-    base = ((base % modulus) + modulus) % modulus; // ensure non-negative
-
-    while exp > 0 {
-        if exp & 1 == 1 {
-            result = (result as i128 * base as i128 % modulus as i128) as i64;
+    pub fn convert_to_biguint(number: i64) -> Option<BigUint>{
+        if number >= 0 {
+            return BigUint::from_u64(number as u64)
         }
-        exp >>= 1;
-        base = (base as i128 * base as i128 % modulus as i128) as i64;
+        None
     }
 
-    result
+    pub fn convert_back(number: BigUint) -> Option<i64> {
+        number.to_i64()
+    }
+    pub fn modular_exponentiation(base: i64, exp: i64, modulus: i64) -> i64 {
+        
+        
+        let big_base = Encryptor::convert_to_biguint(base).unwrap();
+        let big_exp = Encryptor::convert_to_biguint(exp).unwrap();
+        let big_mod = Encryptor::convert_to_biguint(modulus).unwrap();
+        
+        // performs the modular exponentiation
+        let big_result = BigUint::modpow(&big_base, &big_exp, &big_mod);
+        
+        Encryptor::convert_back(big_result).unwrap_or(0)
 }
 
     pub fn encode(self, message: i64, pub_key: &Key) -> i64{
         // message**pub_exp % pub_modulus
-        return Encryptor::modular_exponentiation(message, pub_key.exponent, pub_key.modulus)
+        Encryptor::modular_exponentiation(message, pub_key.exponent, pub_key.modulus)
     }
     pub fn decode(self, message: i64) -> i64{
         // message**priv_exp % pub_modulus
-        return Encryptor::modular_exponentiation(message, self.private_key.exponent, self.private_key.modulus)
+        Encryptor::modular_exponentiation(message, self.private_key.exponent, self.private_key.modulus)
     }
 }
 
@@ -136,4 +146,6 @@ fn main(){
     let encrypted_message = alice.encode(message, &bob.public_key);
     let decrypted_message = bob.decode(encrypted_message);
     println!("message: {}, encrypted message: {}, decrypted message: {}", message, encrypted_message, decrypted_message);
+    
+
 }
