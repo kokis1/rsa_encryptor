@@ -4,7 +4,7 @@
 
 
 int check_inputs(int argc){
-   if (argc != 3){
+   if (argc != 4){
       return 0;
    }
    return 1;
@@ -19,9 +19,9 @@ int is_prime(unsigned int n){
    return 1;
 }
 
-void print_primes(int max, char *output){
+void print_primes(int min, int max, char *output){
    FILE *fptr = fopen(output, "w");
-   for(int i = 2; i <= max; i++){
+   for(int i = min; i <= max; i++){
       if(is_prime(i) == 1){
          fprintf(fptr, "%d\n", i);
       }
@@ -35,10 +35,11 @@ int main(int argc, char **argv){
    }
 
    char *output = argv[1];
-   int max_primes = atoi(argv[2]);
+   int min_primes = atoi(argv[2]);
+   int max_primes = atoi(argv[3]);
 
 
-   print_primes(max_primes, output);
+   print_primes(min_primes, max_primes, output);
 
    return 0;
 }
