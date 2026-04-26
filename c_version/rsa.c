@@ -29,12 +29,21 @@ int get_small_prime(FILE *fptr, int totient){
    for(int i = 0; i < 9800; i++){
       fgets(small_prime_chars, 32, fptr);
       small_prime = atoi(small_prime_chars);
-      printf("e: %d, remainder: %d, totient: %d\n", small_prime, small_prime % totient, totient);
       if(small_prime % totient != 0){
          return small_prime;
       }
    }
    return small_prime;
+}
+
+uint64_t multiplicative_modulat_inv(uint64_t e, uint64_t totient){
+   for(uint64_t i = 2; i < UINT64_MAX; i++){
+      if((i * e) % totient == 1){
+         return i;
+      }
+   }
+   printf("INVERSE NOT FOUND");
+   return -1;
 }
 
 typedef struct{
@@ -78,10 +87,15 @@ int gen_key_pair(key *pub_key, key *priv_key){
 
    FILE *fptr_small_primes = fopen(SMALL_PRIMES, "r");
    int e = get_small_prime(fptr_small_primes, totient);
-   printf("%d\n", e);
    fclose(fptr_small_primes);
 
-   goto debug;
+   uint64_t d = multiplicative_modulat_inv(e, totient);
+
+   pub_key->n = n;
+   pub_key->value = e;
+
+   priv_key->n = n;
+   priv_key->value = d;
 
    debug:
       //debugging code
@@ -92,7 +106,9 @@ int gen_key_pair(key *pub_key, key *priv_key){
       printf("n: %llu\n", n);
       printf("totient: %llu\n", totient);
       printf("e: %d\n", e);
+      printf("d: %llu\n", d);
       return 0;
+   return 0;
 }
 
 
@@ -100,5 +116,7 @@ int main(){
    key pub_key;
    key priv_key;
    gen_key_pair(&pub_key, &priv_key);
+   printf("pub_key n: %d, pub_key e: %d\n", pub_key.n, pub_key.value);
+   printf("priv_key n: %d, priv d: %d\n", priv_key.n, priv_key.value);
    return 0;
 }
