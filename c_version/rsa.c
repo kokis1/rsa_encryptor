@@ -37,6 +37,8 @@ int get_small_prime(FILE *fptr, int totient){
 }
 
 uint64_t multiplicative_modulat_inv(uint64_t e, uint64_t totient){
+
+   /* #!: Improve this!!!*/
    for(uint64_t i = 2; i < UINT64_MAX; i++){
       if((i * e) % totient == 1){
          return i;
