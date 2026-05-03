@@ -36,21 +36,44 @@ int get_small_prime(FILE *fptr, int totient){
    return small_prime;
 }
 
-uint64_t multiplicative_modulat_inv(uint64_t e, uint64_t totient){
+uint64_t multiplicative_modular_inv(uint64_t e, uint64_t totient){
+   uint64_t old_r = e;
+   uint64_t r = totient;
+   uint64_t old_s = 1;
+   uint64_t s = 0;
+   uint64_t old_t = 0;
+   uint64_t t = 1;
 
-   /* #!: Improve this!!!*/
-   for(uint64_t i = 2; i < UINT64_MAX; i++){
-      if((i * e) % totient == 1){
-         return i;
-      }
+   while(r != 0){
+      uint64_t quotient = old_r / r;
+
+      uint64_t temp_r = r;
+      r = old_r - quotient*r;
+      old_r = temp_r;
+
+      uint64_t temp_s = s;
+      s = old_s - quotient*s;
+      old_s = temp_s;
+
+      uint64_t temp_t = t;
+      t = old_t - quotient*t;
+      old_t = temp_t;
+      printf("r: %llu old_r: %llu\n", r, old_r);
+      printf("s: %llu old_s: %llu\n", s, old_s);
+      printf("t: %llu old_t: %llu\n", t, old_t);
    }
-   printf("INVERSE NOT FOUND");
-   return -1;
+   printf("%llu\n", (old_s*e)%totient);
+   if ((old_s*e)%totient == 1){
+      return old_s;
+   }
+   else{
+      return 0;
+   }
 }
 
 typedef struct{
-   int n;
-   int value;
+   uint64_t n;
+   uint64_t value;
 } key;
 
 int gen_key_pair(key *pub_key, key *priv_key){
@@ -66,6 +89,11 @@ int gen_key_pair(key *pub_key, key *priv_key){
       8: modifies the public and private keys that were handed to the function
       9: return 0 if all executed correctly
       */
+
+   uint64_t d = 0;
+   uint64_t *d_ptr = &d;
+   
+   while(d == 0){
    uint64_t random_num_1;
    uint64_t random_num_2;
 
@@ -101,7 +129,8 @@ int gen_key_pair(key *pub_key, key *priv_key){
 
 
    // calculates the private exponent
-   uint64_t d = multiplicative_modulat_inv(e, totient);
+   *d_ptr = multiplicative_modular_inv(e, totient);
+   printf("%llu", d);
 
 
    // sets the values of the public and private keys
@@ -110,8 +139,9 @@ int gen_key_pair(key *pub_key, key *priv_key){
 
    priv_key->n = n;
    priv_key->value = d;
+}
 
-   debug:
+   /*debug:
       //debugging code
       printf("num1: %llu\n", random_num_1);
       printf("p: %d\n", p);
@@ -121,7 +151,7 @@ int gen_key_pair(key *pub_key, key *priv_key){
       printf("totient: %llu\n", totient);
       printf("e: %d\n", e);
       printf("d: %llu\n", d);
-      return 0;
+      return 0;*/
    
    // returns 0 if all happened correctly
    return 0;
@@ -141,7 +171,7 @@ int main(){
    key pub_key;
    key priv_key;
    gen_key_pair(&pub_key, &priv_key);
-   printf("pub_key n: %d, pub_key e: %d\n", pub_key.n, pub_key.value);
-   printf("priv_key n: %d, priv d: %d\n", priv_key.n, priv_key.value);
+   printf("pub_key n: %llu, pub_key e: %llu\n", pub_key.n, pub_key.value);
+   printf("priv_key n: %llu, priv d: %llu\n", priv_key.n, priv_key.value);
    return 0;
 }
