@@ -58,11 +58,7 @@ uint64_t multiplicative_modular_inv(uint64_t e, uint64_t totient){
       uint64_t temp_t = t;
       t = old_t - quotient*t;
       old_t = temp_t;
-      printf("r: %llu old_r: %llu\n", r, old_r);
-      printf("s: %llu old_s: %llu\n", s, old_s);
-      printf("t: %llu old_t: %llu\n", t, old_t);
    }
-   printf("%llu\n", (old_s*e)%totient);
    if ((old_s*e)%totient == 1){
       return old_s;
    }
@@ -130,8 +126,6 @@ int gen_key_pair(key *pub_key, key *priv_key){
 
    // calculates the private exponent
    *d_ptr = multiplicative_modular_inv(e, totient);
-   printf("%llu", d);
-
 
    // sets the values of the public and private keys
    pub_key->n = n;
@@ -140,18 +134,6 @@ int gen_key_pair(key *pub_key, key *priv_key){
    priv_key->n = n;
    priv_key->value = d;
 }
-
-   /*debug:
-      //debugging code
-      printf("num1: %llu\n", random_num_1);
-      printf("p: %d\n", p);
-      printf("num2: %llu\n", random_num_2);
-      printf("q: %d\n", q);
-      printf("n: %llu\n", n);
-      printf("totient: %llu\n", totient);
-      printf("e: %d\n", e);
-      printf("d: %llu\n", d);
-      return 0;*/
    
    // returns 0 if all happened correctly
    return 0;
