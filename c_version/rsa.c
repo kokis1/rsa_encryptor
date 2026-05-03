@@ -63,10 +63,13 @@ int gen_key_pair(key *pub_key, key *priv_key){
       5: calculates the totient -> (p - 1)x(q-1)
       6: chooses a value for e such that e is coprime to the totient
       7: calculates d
+      8: modifies the public and private keys that were handed to the function
+      9: return 0 if all executed correctly
       */
    uint64_t random_num_1;
    uint64_t random_num_2;
 
+   // generates the random bytes for the random indexes
    if (get_random_bytes(&random_num_1, sizeof(random_num_1)) != 0){
       printf("Failed to read from /dev/urandom");
       return 1;
@@ -75,24 +78,33 @@ int gen_key_pair(key *pub_key, key *priv_key){
       printf("Failed to read from /dev/urandom");
       return 1;
    }
+
+   // converts the bytes to indexes of the prime list
    random_num_1 = random_num_1 % 4459;
    random_num_2 = random_num_2 % 4459;
 
-   // opens the list of prime numbers
+   // opens the list of prime numbers and assigns the random numbers p and q
    FILE *fptr = fopen(PRIME_LIST, "r");
    int p = get_entry(fptr, random_num_1);
    int q = get_entry(fptr, random_num_2);
    fclose(fptr);
 
+
+   // calculates n and the totient
    uint64_t n = p*q;
    uint64_t totient = (p-1)*(q-1);
 
+   // opens the list of small primes to select the remainders
    FILE *fptr_small_primes = fopen(SMALL_PRIMES, "r");
    int e = get_small_prime(fptr_small_primes, totient);
    fclose(fptr_small_primes);
 
+
+   // calculates the private exponent
    uint64_t d = multiplicative_modulat_inv(e, totient);
 
+
+   // sets the values of the public and private keys
    pub_key->n = n;
    pub_key->value = e;
 
@@ -110,9 +122,20 @@ int gen_key_pair(key *pub_key, key *priv_key){
       printf("e: %d\n", e);
       printf("d: %llu\n", d);
       return 0;
+   
+   // returns 0 if all happened correctly
    return 0;
 }
 
+int encrypt(int m, key pub_key){
+   int c = pow(m, pub_key.value);
+   return c % pub_key.n;
+}
+
+int decrypt(int c, key priv_key){
+   int m = pow(c, priv_key.value);
+   return m;
+}
 
 int main(){
    key pub_key;
