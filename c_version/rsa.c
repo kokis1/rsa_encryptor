@@ -139,21 +139,46 @@ int gen_key_pair(key *pub_key, key *priv_key){
    return 0;
 }
 
-int encrypt(int m, key pub_key){
-   int c = pow(m, pub_key.value);
-   return c % pub_key.n;
+uint64_t lr_binary_modexp(uint64_t base_num, uint64_t exp, uint64_t modulus){
+/* Using right to left binary modular exponentiation*/
+   if (modulus == 0){
+      return 0;
+   }
+   // prevent an overflow
+   if((modulus-1)*(modulus-1) > UINT64_MAX){
+      return 0;
+   }
+   uint64_t result = 1;
+   uint64_t base = base_num % modulus;
+   uint64_t exponent = exp;
+   while (exponent > 0){
+      if(exponent%2 == 1){
+         result = (result * base) % modulus;
+      }
+      exponent = exponent >> 1;
+      base = (base*base)%modulus;
+   }
+   return result;
 }
 
-int decrypt(int c, key priv_key){
-   int m = pow(c, priv_key.value);
-   return m;
+uint64_t encrypt(uint64_t m, key pub_key){
+  return lr_binary_modexp(m, pub_key.value, pub_key.n);
 }
 
-int main(){
+uint64_t decrypt(uint64_t c, key priv_key){
+   return lr_binary_modexp(c, priv_key.value, priv_key.n);
+}
+
+int main(int argc, char** argv){
    key pub_key;
    key priv_key;
    gen_key_pair(&pub_key, &priv_key);
    printf("pub_key n: %llu, pub_key e: %llu\n", pub_key.n, pub_key.value);
    printf("priv_key n: %llu, priv d: %llu\n", priv_key.n, priv_key.value);
+
+   uint64_t m = atoi(argv[1]);
+   uint64_t encrypted = encrypt(m, pub_key);
+   uint64_t decrypted = decrypt(encrypted, priv_key);
+   printf("message: %llu, cyphertext: %llu, decrypted: %llu\n", m, encrypted, decrypted);
    return 0;
 }
