@@ -7,6 +7,12 @@
 #define PRIME_LIST "output.txt"
 #define SMALL_PRIMES "small_primes.txt"
 
+
+typedef struct k{
+   uint64_t n;
+   uint64_t value;
+} key;
+
 int get_random_bytes(void *buffer, size_t length){
    /* Uses the /dev/urandom file provided in mac/linux to get random bytes*/
    FILE *fptr = fopen("/dev/urandom", "rb");
@@ -69,11 +75,6 @@ uint64_t multiplicative_modular_inv(uint64_t e, uint64_t totient){
         return 0;
     }
 }
-
-typedef struct{
-   uint64_t n;
-   uint64_t value;
-} key;
 
 int gen_key_pair(key *pub_key, key *priv_key){
     uint64_t random_num_1;
@@ -138,14 +139,15 @@ uint64_t rl_binary_modexp(uint64_t base_num, uint64_t exp, uint64_t modulus){
     return result;
 }
 
-uint64_t encrypt(uint64_t m, key pub_key){
-  return rl_binary_modexp(m, pub_key.value, pub_key.n);
+uint64_t encrypt(uint64_t m, key* pub_key){
+  return rl_binary_modexp(m, pub_key->value, pub_key->n);
 }
 
-uint64_t decrypt(uint64_t c, key priv_key){
-   return rl_binary_modexp(c, priv_key.value, priv_key.n);
+uint64_t decrypt(uint64_t c, key* priv_key){
+   return rl_binary_modexp(c, priv_key->value, priv_key->n);
 }
 
+/*
 int main(int argc, char** argv){
    key pub_key;
    key priv_key;
@@ -154,8 +156,9 @@ int main(int argc, char** argv){
    printf("priv_key n: %llu, priv d: %llu\n", priv_key.n, priv_key.value);
 
    uint64_t m = atoi(argv[1]);
-   uint64_t encrypted = encrypt(m, pub_key);
-   uint64_t decrypted = decrypt(encrypted, priv_key);
+   uint64_t encrypted = encrypt(m, &pub_key);
+   uint64_t decrypted = decrypt(encrypted, &priv_key);
    printf("message: %llu, cyphertext: %llu, decrypted: %llu\n", m, encrypted, decrypted);
    return 0;
 }
+   */

@@ -2,7 +2,7 @@ rsa: rsa.c output.txt small_primes.txt
 	clang rsa.c -o rsa
 
 program: rsa.c example.c
-	clanf rsa.c example.c -o example
+	clang rsa.c example.c -o example
 
 output.txt: generate_primes
 	./generate_primes output.txt 50000 100000
