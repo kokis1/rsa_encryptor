@@ -4,7 +4,7 @@
 #include "rsa.h"
 
 int main(int argc, char** argv){
-   key* pub_key;
+   key* pub_key = malloc(sizeof(key));
    key* priv_key;
 
    if(gen_key_pair(pub_key, priv_key) == 1){
