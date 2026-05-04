@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
+#include "rsa.h"
 
 #define PRIME_LIST "output.txt"
 #define SMALL_PRIMES "small_primes.txt"
