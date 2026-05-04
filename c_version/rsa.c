@@ -7,64 +7,66 @@
 #define SMALL_PRIMES "small_primes.txt"
 
 int get_random_bytes(void *buffer, size_t length){
+   /* Uses the /dev/urandom file provided in mac/linux to get random bytes*/
    FILE *fptr = fopen("/dev/urandom", "rb");
    size_t read = fread(buffer, 1, length, fptr);
    fclose(fptr);
    return (read == length) ? 0 : -1;
 }
 
-int get_entry(FILE *fptr, unsigned int line_num){
+uint64_t get_entry(FILE *fptr, unsigned int line_num){
    /* Gets the entry at spefified line number*/
    char result[32]; // maximum string buffer size for a uint32_t
    for(int i = 0; i < line_num; i++){
       fgets(result, 32, fptr);
    }
-   return atoi(result);
+   return (uint64_t)atoi(result);
 }
 
-int get_small_prime(FILE *fptr, int totient){
-   /* Gets a small prime number to be coprime to the totient*/
+uint64_t get_small_prime(FILE *fptr, int totient){
+   /* Gets a small prime number coprime to the totient*/
    char small_prime_chars[32];
    int small_prime;
    for(int i = 0; i < 9800; i++){
       fgets(small_prime_chars, 32, fptr);
       small_prime = atoi(small_prime_chars);
       if(small_prime % totient != 0){
-         return small_prime;
+         return (uint64_t)small_prime;
       }
    }
-   return small_prime;
+   return (uint64_t)small_prime;
 }
 
 uint64_t multiplicative_modular_inv(uint64_t e, uint64_t totient){
-   uint64_t old_r = e;
-   uint64_t r = totient;
-   uint64_t old_s = 1;
-   uint64_t s = 0;
-   uint64_t old_t = 0;
-   uint64_t t = 1;
+    int64_t old_r = e;
+    int64_t r = totient;
+    int64_t old_s = 1;
+    int64_t s = 0;
 
-   while(r != 0){
-      uint64_t quotient = old_r / r;
+    while(r != 0){
+        int64_t quotient = old_r / r;
 
-      uint64_t temp_r = r;
-      r = old_r - quotient*r;
-      old_r = temp_r;
+        int64_t temp_r = r;
+        r = old_r - quotient * r;
+        old_r = temp_r;
 
-      uint64_t temp_s = s;
-      s = old_s - quotient*s;
-      old_s = temp_s;
+        int64_t temp_s = s;
+        s = old_s - quotient * s;
+        old_s = temp_s;
+    }
 
-      uint64_t temp_t = t;
-      t = old_t - quotient*t;
-      old_t = temp_t;
-   }
-   if ((old_s*e)%totient == 1){
-      return old_s;
-   }
-   else{
-      return 0;
-   }
+    // Adjust to positive
+    if (old_s < 0){
+        old_s += totient;
+    }
+
+    // Verify and return
+    if (((int64_t)(old_s * e)) % (int64_t)totient == 1){
+        return (uint64_t)old_s;
+    }
+    else{
+        return 0;
+    }
 }
 
 typedef struct{
@@ -73,100 +75,74 @@ typedef struct{
 } key;
 
 int gen_key_pair(key *pub_key, key *priv_key){
+    uint64_t random_num_1;
+    uint64_t random_num_2;
 
-   /* Generates the private key:
-      1: creates two random large integers, using urandom file in OS
-      2: turns them in to line numbers by taking the modulus w.r.t the number of primes
-      3: fetches the primes stored at that location
-      4: calculates n
-      5: calculates the totient -> (p - 1)x(q-1)
-      6: chooses a value for e such that e is coprime to the totient
-      7: calculates d
-      8: modifies the public and private keys that were handed to the function
-      9: return 0 if all executed correctly
-      */
+    if (get_random_bytes(&random_num_1, sizeof(random_num_1)) != 0){
+        printf("Failed to read from /dev/urandom");
+        return 1;
+    }
+    if (get_random_bytes(&random_num_2, sizeof(random_num_2)) != 0){
+        printf("Failed to read from /dev/urandom");
+        return 1;
+    }
 
-   uint64_t d = 0;
-   uint64_t *d_ptr = &d;
-   
-   while(d == 0){
-   uint64_t random_num_1;
-   uint64_t random_num_2;
+    random_num_1 = random_num_1 % 4459;
+    random_num_2 = random_num_2 % 4459;
 
-   // generates the random bytes for the random indexes
-   if (get_random_bytes(&random_num_1, sizeof(random_num_1)) != 0){
-      printf("Failed to read from /dev/urandom");
-      return 1;
-   }
-   if (get_random_bytes(&random_num_2, sizeof(random_num_2)) != 0){
-      printf("Failed to read from /dev/urandom");
-      return 1;
-   }
+    FILE *fptr = fopen(PRIME_LIST, "r");
+    uint64_t p = get_entry(fptr, random_num_1);  // fix: uint64_t
+    uint64_t q = get_entry(fptr, random_num_2);  // fix: uint64_t
+    fclose(fptr);
 
-   // converts the bytes to indexes of the prime list
-   random_num_1 = random_num_1 % 4459;
-   random_num_2 = random_num_2 % 4459;
+    // now multiplication happens in 64-bit
+    uint64_t n = p * q;
+    uint64_t totient = (p - 1) * (q - 1);
 
-   // opens the list of prime numbers and assigns the random numbers p and q
-   FILE *fptr = fopen(PRIME_LIST, "r");
-   int p = get_entry(fptr, random_num_1);
-   int q = get_entry(fptr, random_num_2);
-   fclose(fptr);
+    FILE *fptr_small_primes = fopen(SMALL_PRIMES, "r");
+    uint64_t e = get_small_prime(fptr_small_primes, totient);  // fix: uint64_t
+    fclose(fptr_small_primes);
 
+    uint64_t d = multiplicative_modular_inv(e, totient);
+    if (d == 0){
+        printf("Failed to find modular inverse\n");
+        return 1;
+    }
 
-   // calculates n and the totient
-   uint64_t n = p*q;
-   uint64_t totient = (p-1)*(q-1);
+    pub_key->n = n;
+    pub_key->value = e;
 
-   // opens the list of small primes to select the remainders
-   FILE *fptr_small_primes = fopen(SMALL_PRIMES, "r");
-   int e = get_small_prime(fptr_small_primes, totient);
-   fclose(fptr_small_primes);
+    priv_key->n = n;
+    priv_key->value = d;
 
-
-   // calculates the private exponent
-   *d_ptr = multiplicative_modular_inv(e, totient);
-
-   // sets the values of the public and private keys
-   pub_key->n = n;
-   pub_key->value = e;
-
-   priv_key->n = n;
-   priv_key->value = d;
-}
-   
-   // returns 0 if all happened correctly
-   return 0;
+    return 0;
 }
 
-uint64_t lr_binary_modexp(uint64_t base_num, uint64_t exp, uint64_t modulus){
-/* Using right to left binary modular exponentiation*/
-   if (modulus == 0){
-      return 0;
-   }
-   // prevent an overflow
-   if((modulus-1)*(modulus-1) > UINT64_MAX){
-      return 0;
-   }
-   uint64_t result = 1;
-   uint64_t base = base_num % modulus;
-   uint64_t exponent = exp;
-   while (exponent > 0){
-      if(exponent%2 == 1){
-         result = (result * base) % modulus;
-      }
-      exponent = exponent >> 1;
-      base = (base*base)%modulus;
-   }
-   return result;
+uint64_t rl_binary_modexp(uint64_t base_num, uint64_t exp, uint64_t modulus){
+    if (modulus == 0) return 0;
+    if (exp == 0) return 1 % modulus;
+
+    uint64_t result = 1;
+    uint64_t base = base_num % modulus;
+    uint64_t exponent = exp;
+
+    while (exponent > 0){
+        if (exponent % 2 == 1){
+            result = ((__uint128_t)result * base) % modulus;
+        }
+        exponent = exponent >> 1;
+        base = ((__uint128_t)base * base) % modulus;
+    }
+
+    return result;
 }
 
 uint64_t encrypt(uint64_t m, key pub_key){
-  return lr_binary_modexp(m, pub_key.value, pub_key.n);
+  return rl_binary_modexp(m, pub_key.value, pub_key.n);
 }
 
 uint64_t decrypt(uint64_t c, key priv_key){
-   return lr_binary_modexp(c, priv_key.value, priv_key.n);
+   return rl_binary_modexp(c, priv_key.value, priv_key.n);
 }
 
 int main(int argc, char** argv){
