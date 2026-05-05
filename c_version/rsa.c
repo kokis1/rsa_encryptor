@@ -76,6 +76,10 @@ uint64_t multiplicative_modular_inv(uint64_t e, uint64_t totient){
     }
 }
 
+key* make_key(){
+    return malloc(sizeof(key));
+}
+
 int gen_key_pair(key *pub_key, key *priv_key){
     uint64_t random_num_1;
     uint64_t random_num_2;
@@ -145,6 +149,10 @@ uint64_t encrypt(uint64_t m, key* pub_key){
 
 uint64_t decrypt(uint64_t c, key* priv_key){
    return rl_binary_modexp(c, priv_key->value, priv_key->n);
+}
+
+void kill_key(key* key_ptr){
+    free(key_ptr);
 }
 
 /*

@@ -7,6 +7,8 @@ typedef struct k key;
 
 int gen_key_pair(key *pub_key, key *priv_key);
 
+key* make_key();
+void kill_key(key* key_ptr);
 uint64_t encrypt(uint64_t m, key* pub_key);
 uint64_t decrypt(uint64_t c, key* priv_key);
 
