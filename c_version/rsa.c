@@ -13,7 +13,7 @@ typedef struct k{
    uint64_t value;
 } key;
 
-int get_random_bytes(void *buffer, size_t length){
+static int get_random_bytes(void *buffer, size_t length){
    /* Uses the /dev/urandom file provided in mac/linux to get random bytes*/
    FILE *fptr = fopen("/dev/urandom", "rb");
    size_t read = fread(buffer, 1, length, fptr);
@@ -21,7 +21,7 @@ int get_random_bytes(void *buffer, size_t length){
    return (read == length) ? 0 : -1;
 }
 
-uint64_t get_entry(FILE *fptr, unsigned int line_num){
+static uint64_t get_entry(FILE *fptr, unsigned int line_num){
    /* Gets the entry at spefified line number*/
    char result[32]; // maximum string buffer size for a uint32_t
    for(int i = 0; i < line_num; i++){
@@ -30,7 +30,7 @@ uint64_t get_entry(FILE *fptr, unsigned int line_num){
    return (uint64_t)atoi(result);
 }
 
-uint64_t get_small_prime(FILE *fptr, int totient){
+static uint64_t get_small_prime(FILE *fptr, int totient){
    /* Gets a small prime number coprime to the totient*/
    char small_prime_chars[32];
    int small_prime;
@@ -44,7 +44,7 @@ uint64_t get_small_prime(FILE *fptr, int totient){
    return (uint64_t)small_prime;
 }
 
-uint64_t multiplicative_modular_inv(uint64_t e, uint64_t totient){
+static uint64_t multiplicative_modular_inv(uint64_t e, uint64_t totient){
     int64_t old_r = e;
     int64_t r = totient;
     int64_t old_s = 1;
@@ -124,7 +124,7 @@ int gen_key_pair(key *pub_key, key *priv_key){
     return 0;
 }
 
-uint64_t rl_binary_modexp(uint64_t base_num, uint64_t exp, uint64_t modulus){
+static uint64_t rl_binary_modexp(uint64_t base_num, uint64_t exp, uint64_t modulus){
     if (modulus == 0) return 0;
     if (exp == 0) return 1 % modulus;
 
@@ -154,19 +154,3 @@ uint64_t decrypt(uint64_t c, key* priv_key){
 void kill_key(key* key_ptr){
     free(key_ptr);
 }
-
-/*
-int main(int argc, char** argv){
-   key pub_key;
-   key priv_key;
-   gen_key_pair(&pub_key, &priv_key);
-   printf("pub_key n: %llu, pub_key e: %llu\n", pub_key.n, pub_key.value);
-   printf("priv_key n: %llu, priv d: %llu\n", priv_key.n, priv_key.value);
-
-   uint64_t m = atoi(argv[1]);
-   uint64_t encrypted = encrypt(m, &pub_key);
-   uint64_t decrypted = decrypt(encrypted, &priv_key);
-   printf("message: %llu, cyphertext: %llu, decrypted: %llu\n", m, encrypted, decrypted);
-   return 0;
-}
-*/
